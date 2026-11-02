@@ -1,9 +1,23 @@
-# hebrew-il-mcp
+<div align="center">
+
+<img src=".github/banner.svg" alt="hebrew-il-mcp" width="100%"/>
 
 [![CI](https://github.com/Shtibel1/hebrew-il-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Shtibel1/hebrew-il-mcp/actions/workflows/ci.yml)
-![MCP](https://img.shields.io/badge/MCP-server-blue) ![License: MIT](https://img.shields.io/badge/license-MIT-green)
+[![version](https://img.shields.io/github/package-json/v/Shtibel1/hebrew-il-mcp?color=a78bfa)](package.json)
+[![license](https://img.shields.io/github/license/Shtibel1/hebrew-il-mcp?color=34d399)](LICENSE)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
+[![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-8b5cf6)](https://modelcontextprotocol.io)
+
+**Deterministic Israeli & Hebrew tools for AI agents — ת״ז, IBAN, מע״מ, Hebrew dates, gematria.**
+
+</div>
+
+<p align="center"><a href="#quick-start">Quick start</a> · <a href="#tools">Tools</a> · <a href="#architecture">Architecture</a> · <a href="#roadmap">Roadmap</a></p>
+
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that gives AI agents reliable, deterministic tools for Israeli and Hebrew data — the things LLMs routinely get wrong when they try to do them "in their head":
+
+## Tools
 
 | Tool | What it does |
 | --- | --- |
@@ -22,7 +36,7 @@ Every tool returns both human-readable text and `structuredContent`, and invalid
 
 Agents that handle Israeli invoices, CRM leads or bookkeeping keep tripping over the same things: an ID number that "looks fine" but fails the checksum, phone numbers stored in five formats, VAT computed at last year's rate, Hebrew dates hallucinated. These are pure, well-defined functions — so they belong in a tool, not in a prompt.
 
-## Usage
+## Quick start
 
 ### Claude Desktop / Cursor / any MCP client
 
@@ -55,7 +69,20 @@ toHebrewDate("2026-11-01").formatted;        // "כ״א בחשוון תשפ״ז"
 buildIsraeliIban(10, 800, 99999999);         // "IL620108000000099999999"
 ```
 
-## Design
+## Architecture
+
+```mermaid
+flowchart LR
+  C["MCP client<br/>(Claude Desktop, Cursor, agents)"] -- stdio --> CLI[cli.ts]
+  CLI --> S["server.ts<br/>zod schemas · isError results"]
+  S --> L
+  subgraph L["src/lib — pure domain core"]
+    ID[id] --- PH[phone] --- VAT[vat] --- IB[iban] --- HE[hebrew]
+  end
+  APP["Your TS app"] -- import --> L
+```
+
+### Layout
 
 ```
 src/
@@ -79,6 +106,17 @@ npm run typecheck
 npm run build
 ```
 
+## Roadmap
+
+- [ ] Publish to npm so `npx hebrew-il-mcp` works without the GitHub shorthand
+- [ ] Israeli bank-holiday / business-day calendar tool
+- [ ] Postal code and city-name normalization
+- [ ] Hosted (Streamable HTTP) transport option
+
+## Contributing
+
+Issues and PRs are welcome. Every tool should stay a pure function in `src/lib` with unit tests, plus an end-to-end case in `test/server.test.ts`.
+
 ## License
 
-MIT
+[MIT](LICENSE) © Nadav Shtibel
