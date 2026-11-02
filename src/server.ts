@@ -3,6 +3,7 @@ import { z } from "zod";
 import { validateIsraeliId } from "./lib/id.js";
 import { normalizeIsraeliPhone } from "./lib/phone.js";
 import { calculateVat, vatRateOn } from "./lib/vat.js";
+import { buildIsraeliIban, validateIsraeliIban } from "./lib/iban.js";
 import { gematria, stripNiqqud, toHebrewDate, toHebrewNumeral } from "./lib/hebrew.js";
 
 const json = (value: unknown) => ({
@@ -26,7 +27,7 @@ function safe<A>(fn: (args: A) => unknown) {
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.1.0" });
+  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.2.0" });
 
   server.registerTool(
     "validate_israeli_id",
@@ -118,6 +119,26 @@ export function createServer(): McpServer {
       number,
       hebrew: toHebrewNumeral(number, { keepThousands }),
     })),
+  );
+
+  server.registerTool(
+    "israeli_iban",
+    {
+      title: "Validate or build an Israeli IBAN",
+      description:
+        "Validate an Israeli IBAN (MOD 97 check digits) and split it into bank, branch and account, or build the IBAN from domestic bank details (bank code, branch, account number). Pass either iban or bank+branch+account.",
+      inputSchema: {
+        iban: z.string().optional().describe("IBAN to validate, e.g. 'IL62 0108 0000 0009 9999 999'"),
+        bank: z.string().optional().describe("Bank code, e.g. '12' for Hapoalim"),
+        branch: z.string().optional().describe("Branch number"),
+        account: z.string().optional().describe("Account number"),
+      },
+    },
+    safe(({ iban, bank, branch, account }: { iban?: string; bank?: string; branch?: string; account?: string }) => {
+      if (iban) return validateIsraeliIban(iban);
+      if (bank && branch && account) return validateIsraeliIban(buildIsraeliIban(bank, branch, account));
+      throw new Error("Provide either iban, or bank, branch and account");
+    }),
   );
 
   return server;

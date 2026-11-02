@@ -20,6 +20,7 @@ describe("MCP server", () => {
       "hebrew_date",
       "hebrew_numeral",
       "hebrew_text_tools",
+      "israeli_iban",
       "israeli_vat_rate",
       "normalize_israeli_phone",
       "validate_israeli_id",
@@ -30,6 +31,14 @@ describe("MCP server", () => {
     const client = await connect();
     const res = await client.callTool({ name: "calculate_israeli_vat", arguments: { amount: 1180, includesVat: true, date: "2026-03-01" } });
     expect(res.structuredContent).toMatchObject({ net: 1000, vat: 180, currency: "ILS" });
+  });
+
+  it("builds an IBAN from bank details end to end", async () => {
+    const client = await connect();
+    const res = await client.callTool({ name: "israeli_iban", arguments: { bank: "10", branch: "800", account: "99999999" } });
+    expect(res.structuredContent).toMatchObject({ valid: true, normalized: "IL620108000000099999999", bankName: "Bank Leumi" });
+    const bad = await client.callTool({ name: "israeli_iban", arguments: {} });
+    expect(bad.isError).toBe(true);
   });
 
   it("returns isError for out-of-range input", async () => {

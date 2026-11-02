@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateIsraeliId, israeliCheckDigitOk } from "../src/lib/id.js";
 import { normalizeIsraeliPhone } from "../src/lib/phone.js";
 import { calculateVat, vatRateOn } from "../src/lib/vat.js";
+import { buildIsraeliIban, validateIsraeliIban } from "../src/lib/iban.js";
 import { gematria, stripNiqqud, toHebrewDate, toHebrewNumeral } from "../src/lib/hebrew.js";
 
 describe("validateIsraeliId", () => {
@@ -89,5 +90,33 @@ describe("Hebrew text", () => {
     expect(toHebrewDate("2026-11-01")).toMatchObject({ day: 21, year: 5787, monthHebrew: "חשוון", formatted: "כ״א בחשוון תשפ״ז" });
     expect(toHebrewDate("2025-09-23").formatted).toBe("א׳ בתשרי תשפ״ו");
     expect(() => toHebrewDate("01/11/2026")).toThrow();
+  });
+});
+
+describe("Israeli IBAN", () => {
+  it("validates the ISO 13616 example IBAN and splits it", () => {
+    expect(validateIsraeliIban("IL62 0108 0000 0009 9999 999")).toMatchObject({
+      valid: true,
+      normalized: "IL620108000000099999999",
+      bankCode: "010",
+      bankName: "Bank Leumi",
+      branch: "800",
+      account: "0000099999999",
+      formatted: "IL62 0108 0000 0009 9999 999",
+    });
+  });
+  it("rejects a wrong check digit, wrong country and wrong length", () => {
+    expect(validateIsraeliIban("IL630108000000099999999")).toMatchObject({ valid: false, reason: "Check digits mismatch" });
+    expect(validateIsraeliIban("DE89370400440532013000").valid).toBe(false);
+    expect(validateIsraeliIban("IL62010800000009999999").valid).toBe(false);
+  });
+  it("builds IBANs that round-trip through validation", () => {
+    expect(buildIsraeliIban("10", "800", "99999999")).toBe("IL620108000000099999999");
+    const iban = buildIsraeliIban(12, 600, "123456");
+    expect(validateIsraeliIban(iban)).toMatchObject({ valid: true, bankName: "Bank Hapoalim", branch: "600" });
+  });
+  it("throws on malformed bank details", () => {
+    expect(() => buildIsraeliIban("1234", "1", "1")).toThrow(/Bank code/);
+    expect(() => buildIsraeliIban("12", "1", "12345678901234")).toThrow(/Account/);
   });
 });

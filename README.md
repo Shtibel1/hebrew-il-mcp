@@ -10,6 +10,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that gives AI
 | `validate_israeli_id` | Validates Teudat Zehut / ח.פ / amuta / Osek Murshe numbers with the official check digit and detects the entity type from the registry prefix (51 company, 58 amuta, 55 partnership, …). |
 | `normalize_israeli_phone` | Parses `050-1234567`, `+972 (0)54 765 4321`, `00972-3-…`, `1-800-…` into E.164 plus a national display format and line type (mobile / landline / VoIP / toll-free). |
 | `calculate_israeli_vat` | Adds or splits מע"מ using the rate **in force on the transaction date** (17% → 18% on 2025‑01‑01, with history back to 2012), rounded to agorot. |
+| `israeli_iban` | Validates an Israeli IBAN (ISO 7064 MOD 97-10), splits it into bank / branch / account and names the bank, or builds the IBAN from the domestic details printed on a cheque. |
 | `israeli_vat_rate` | Returns the standard VAT rate for a given date. |
 | `hebrew_date` | Converts a Gregorian date to the Hebrew calendar, including the traditional form (`כ״א בחשוון תשפ״ז`). |
 | `hebrew_numeral` | Writes numbers as Hebrew numerals with correct ט״ו / ט״ז handling and gershayim. |
@@ -46,18 +47,19 @@ node dist/cli.js   # speaks MCP over stdio
 ### As a library
 
 ```ts
-import { validateIsraeliId, calculateVat, toHebrewDate } from "hebrew-il-mcp";
+import { validateIsraeliId, calculateVat, toHebrewDate, buildIsraeliIban } from "hebrew-il-mcp";
 
 validateIsraeliId("515555555", "corporate"); // { valid, normalized, kind: "company", ... }
 calculateVat(1180, true, "2026-03-01");      // { rate: 0.18, net: 1000, vat: 180, gross: 1180 }
 toHebrewDate("2026-11-01").formatted;        // "כ״א בחשוון תשפ״ז"
+buildIsraeliIban(10, 800, 99999999);         // "IL620108000000099999999"
 ```
 
 ## Design
 
 ```
 src/
-  lib/        pure, dependency-free domain functions (id, phone, vat, hebrew)
+  lib/        pure, dependency-free domain functions (id, phone, vat, iban, hebrew)
   server.ts   MCP wiring: zod input schemas + uniform JSON / isError results
   cli.ts      stdio transport entry point
 test/
