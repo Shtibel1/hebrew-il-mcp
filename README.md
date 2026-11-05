@@ -25,6 +25,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that gives AI
 | `normalize_israeli_phone` | Parses `050-1234567`, `+972 (0)54 765 4321`, `00972-3-…`, `1-800-…` into E.164 plus a national display format and line type (mobile / landline / VoIP / toll-free). |
 | `calculate_israeli_vat` | Adds or splits מע"מ using the rate **in force on the transaction date** (17% → 18% on 2025‑01‑01, with history back to 2012), rounded to agorot. |
 | `israeli_iban` | Validates an Israeli IBAN (ISO 7064 MOD 97-10), splits it into bank / branch / account and names the bank, or builds the IBAN from the domestic details printed on a cheque. |
+| `normalize_israeli_plate` | Validates and formats Israeli vehicle licence plates, both the 7-digit `NN-NNN-NN` and the 8-digit `NNN-NN-NNN` formats. |
 | `israeli_vat_rate` | Returns the standard VAT rate for a given date. |
 | `hebrew_date` | Converts a Gregorian date to the Hebrew calendar, including the traditional form (`כ״א בחשוון תשפ״ז`). |
 | `hebrew_numeral` | Writes numbers as Hebrew numerals with correct ט״ו / ט״ז handling and gershayim. |

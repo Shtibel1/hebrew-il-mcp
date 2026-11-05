@@ -4,6 +4,7 @@ import { validateIsraeliId } from "./lib/id.js";
 import { normalizeIsraeliPhone } from "./lib/phone.js";
 import { calculateVat, vatRateOn } from "./lib/vat.js";
 import { buildIsraeliIban, validateIsraeliIban } from "./lib/iban.js";
+import { normalizeIsraeliPlate } from "./lib/plate.js";
 import { gematria, stripNiqqud, toHebrewDate, toHebrewNumeral } from "./lib/hebrew.js";
 
 const json = (value: unknown) => ({
@@ -27,7 +28,7 @@ function safe<A>(fn: (args: A) => unknown) {
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.2.0" });
+  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.3.0" });
 
   server.registerTool(
     "validate_israeli_id",
@@ -139,6 +140,17 @@ export function createServer(): McpServer {
       if (bank && branch && account) return validateIsraeliIban(buildIsraeliIban(bank, branch, account));
       throw new Error("Provide either iban, or bank, branch and account");
     }),
+  );
+
+  server.registerTool(
+    "normalize_israeli_plate",
+    {
+      title: "Normalize Israeli vehicle plate",
+      description:
+        "Validate and format an Israeli civilian licence plate: 7 digits (NN-NNN-NN, pre-2017) or 8 digits (NNN-NN-NNN). Ignores spaces, dashes and an IL prefix.",
+      inputSchema: { plate: z.string().describe("Plate as written, e.g. '123-45-678'") },
+    },
+    safe(({ plate }: { plate: string }) => normalizeIsraeliPlate(plate)),
   );
 
   return server;

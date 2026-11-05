@@ -23,6 +23,7 @@ describe("MCP server", () => {
       "israeli_iban",
       "israeli_vat_rate",
       "normalize_israeli_phone",
+      "normalize_israeli_plate",
       "validate_israeli_id",
     ]);
   });
