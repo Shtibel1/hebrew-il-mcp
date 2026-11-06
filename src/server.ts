@@ -6,6 +6,7 @@ import { calculateVat, vatRateOn } from "./lib/vat.js";
 import { buildIsraeliIban, validateIsraeliIban } from "./lib/iban.js";
 import { normalizeIsraeliPlate } from "./lib/plate.js";
 import { gematria, stripNiqqud, toHebrewDate, toHebrewNumeral } from "./lib/hebrew.js";
+import { israeliBusinessDay, israeliHolidaysInYear, nextIsraeliBusinessDay } from "./lib/holidays.js";
 
 const json = (value: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
@@ -28,7 +29,7 @@ function safe<A>(fn: (args: A) => unknown) {
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.3.0" });
+  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.4.0" });
 
   server.registerTool(
     "validate_israeli_id",
@@ -151,6 +152,40 @@ export function createServer(): McpServer {
       inputSchema: { plate: z.string().describe("Plate as written, e.g. '123-45-678'") },
     },
     safe(({ plate }: { plate: string }) => normalizeIsraeliPlate(plate)),
+  );
+
+
+  server.registerTool(
+    "israeli_business_day",
+    {
+      title: "Israeli bank business day",
+      description:
+        "Check whether a Gregorian date (YYYY-MM-DD) is an Israeli bank/clearing business day. Saturdays and full-closure Jewish holidays (Rosh Hashanah, Yom Kippur, Sukkot, Shemini Atzeret, Pesach, Shavuot) plus Independence Day (with civil postponement rules) are non-business days. Friday is still a business day.",
+      inputSchema: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Gregorian date, YYYY-MM-DD") },
+    },
+    safe(({ date }: { date: string }) => israeliBusinessDay(date)),
+  );
+
+  server.registerTool(
+    "next_israeli_business_day",
+    {
+      title: "Next Israeli bank business day",
+      description:
+        "Return the first Israeli bank/clearing business day strictly after the given Gregorian date (YYYY-MM-DD), skipping Saturdays and bank holidays.",
+      inputSchema: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) },
+    },
+    safe(({ date }: { date: string }) => nextIsraeliBusinessDay(date)),
+  );
+
+  server.registerTool(
+    "israeli_holidays",
+    {
+      title: "Israeli bank holidays in a year",
+      description:
+        "List Israeli bank full-closure holidays (Jewish holidays and Independence Day, excluding weekly Shabbat) whose Gregorian date falls in the given year.",
+      inputSchema: { year: z.number().int().min(1900).max(2100) },
+    },
+    safe(({ year }: { year: number }) => ({ year, holidays: israeliHolidaysInYear(year) })),
   );
 
   return server;

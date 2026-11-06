@@ -20,8 +20,11 @@ describe("MCP server", () => {
       "hebrew_date",
       "hebrew_numeral",
       "hebrew_text_tools",
+      "israeli_business_day",
+      "israeli_holidays",
       "israeli_iban",
       "israeli_vat_rate",
+      "next_israeli_business_day",
       "normalize_israeli_phone",
       "normalize_israeli_plate",
       "validate_israeli_id",
@@ -47,4 +50,18 @@ describe("MCP server", () => {
     const res = await client.callTool({ name: "israeli_vat_rate", arguments: { date: "1999-01-01" } });
     expect(res.isError).toBe(true);
   });
+
+  it("checks an Israeli business day end to end", async () => {
+    const client = await connect();
+    const closed = await client.callTool({ name: "israeli_business_day", arguments: { date: "2026-04-22" } });
+    expect(closed.structuredContent).toMatchObject({
+      businessDay: false,
+      holiday: { kind: "independence-day" },
+    });
+    const next = await client.callTool({ name: "next_israeli_business_day", arguments: { date: "2026-04-22" } });
+    expect(next.structuredContent).toMatchObject({ date: "2026-04-23", businessDay: true });
+    const year = await client.callTool({ name: "israeli_holidays", arguments: { year: 2026 } });
+    expect((year.structuredContent as { holidays: unknown[] }).holidays.length).toBeGreaterThanOrEqual(8);
+  });
+
 });
