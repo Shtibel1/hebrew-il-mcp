@@ -21,12 +21,15 @@ describe("MCP server", () => {
       "hebrew_numeral",
       "hebrew_text_tools",
       "israeli_business_day",
+      "israeli_city_from_postal",
       "israeli_holidays",
       "israeli_iban",
       "israeli_vat_rate",
+      "lookup_israeli_city",
       "next_israeli_business_day",
       "normalize_israeli_phone",
       "normalize_israeli_plate",
+      "normalize_israeli_postal_code",
       "validate_israeli_id",
     ]);
   });
@@ -64,4 +67,13 @@ describe("MCP server", () => {
     expect((year.structuredContent as { holidays: unknown[] }).holidays.length).toBeGreaterThanOrEqual(8);
   });
 
+  it("normalizes postal codes and looks up cities end to end", async () => {
+    const client = await connect();
+    const norm = await client.callTool({ name: "normalize_israeli_postal_code", arguments: { postalCode: "12-345-67" } });
+    expect(norm.structuredContent).toMatchObject({ valid: true, digits: "1234567", formatted: "12-345-67" });
+    const city = await client.callTool({ name: "lookup_israeli_city", arguments: { query: "Hadera" } });
+    expect(city.structuredContent).toMatchObject({ found: true, he: "חדרה" });
+    const from = await client.callTool({ name: "israeli_city_from_postal", arguments: { postalCode: "3850000" } });
+    expect(from.structuredContent).toMatchObject({ found: true, en: "Hadera" });
+  });
 });

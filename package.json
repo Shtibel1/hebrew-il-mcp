@@ -1,7 +1,7 @@
 {
   "name": "hebrew-il-mcp",
-  "version": "0.4.0",
-  "description": "MCP server with Israeli and Hebrew utilities for AI agents: ID/company number validation, phone normalization, VAT, IBAN, plates, Hebrew dates, bank holidays / business days, numerals and niqqud.",
+  "version": "0.5.0",
+  "description": "MCP server with Israeli and Hebrew utilities for AI agents: ID/company number validation, phone normalization, VAT, IBAN, plates, postal codes / cities, Hebrew dates, bank holidays / business days, numerals and niqqud.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -20,7 +20,11 @@
     "iban",
     "bank-holiday",
     "business-day",
-    "hebrew-calendar"
+    "hebrew-calendar",
+    "postal",
+    "mikud",
+    "city",
+    "\u05de\u05d9\u05e7\u05d5\u05d3"
   ],
   "author": "Nadav Shtibel",
   "license": "MIT",

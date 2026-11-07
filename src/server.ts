@@ -7,6 +7,7 @@ import { buildIsraeliIban, validateIsraeliIban } from "./lib/iban.js";
 import { normalizeIsraeliPlate } from "./lib/plate.js";
 import { gematria, stripNiqqud, toHebrewDate, toHebrewNumeral } from "./lib/hebrew.js";
 import { israeliBusinessDay, israeliHolidaysInYear, nextIsraeliBusinessDay } from "./lib/holidays.js";
+import { cityFromIsraeliPostalCode, lookupIsraeliCity, normalizeIsraeliPostalCode } from "./lib/postal.js";
 
 const json = (value: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
@@ -29,7 +30,7 @@ function safe<A>(fn: (args: A) => unknown) {
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.4.0" });
+  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.5.0" });
 
   server.registerTool(
     "validate_israeli_id",
@@ -187,6 +188,40 @@ export function createServer(): McpServer {
     },
     safe(({ year }: { year: number }) => ({ year, holidays: israeliHolidaysInYear(year) })),
   );
+
+  server.registerTool(
+    "normalize_israeli_postal_code",
+    {
+      title: "Normalize Israeli postal code",
+      description:
+        "Validate and format an Israeli 7-digit postal code (מיקוד, post-2013). Accepts digits with optional spaces/dashes; returns digits and XX-XXX-XX formatting.",
+      inputSchema: { postalCode: z.string().describe("Postal code as written, e.g. '12-345-67' or '1234567'") },
+    },
+    safe(({ postalCode }: { postalCode: string }) => normalizeIsraeliPostalCode(postalCode)),
+  );
+
+  server.registerTool(
+    "lookup_israeli_city",
+    {
+      title: "Lookup Israeli city / locality",
+      description:
+        "Normalize a Hebrew or English city/town name against a curated table of major Israeli localities. Returns canonical Hebrew and English names plus representative postal codes and prefixes. Alias-aware (e.g. 'Tel Aviv', 'תל-אביב', 'Modiin').",
+      inputSchema: { query: z.string().describe("City name in Hebrew or English") },
+    },
+    safe(({ query }: { query: string }) => lookupIsraeliCity(query)),
+  );
+
+  server.registerTool(
+    "israeli_city_from_postal",
+    {
+      title: "City from Israeli postal code",
+      description:
+        "Map a valid 7-digit Israeli postal code to the best-matching curated locality via longest-prefix match. Honest approximation of major cities/towns — not a full Israel Post address dump.",
+      inputSchema: { postalCode: z.string().describe("7-digit mikud, with or without separators") },
+    },
+    safe(({ postalCode }: { postalCode: string }) => cityFromIsraeliPostalCode(postalCode)),
+  );
+
 
   return server;
 }
