@@ -7,3 +7,5 @@ export * from "./lib/hebrew.js";
 export * from "./lib/holidays.js";
 export * from "./lib/postal.js";
 export { createServer } from "./server.js";
+export { startHttpServer, parseAllowedOrigins, DEFAULT_HTTP_HOST, DEFAULT_HTTP_PORT, MCP_PATH, MAX_BODY_BYTES } from "./http.js";
+export type { HttpServerOptions, RunningHttpServer } from "./http.js";

@@ -29,8 +29,10 @@ function safe<A>(fn: (args: A) => unknown) {
   };
 }
 
+export const SERVER_VERSION = "0.6.0";
+
 export function createServer(): McpServer {
-  const server = new McpServer({ name: "hebrew-il-mcp", version: "0.5.0" });
+  const server = new McpServer({ name: "hebrew-il-mcp", version: SERVER_VERSION });
 
   server.registerTool(
     "validate_israeli_id",

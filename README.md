@@ -65,6 +65,17 @@ npm install && npm run build
 node dist/cli.js   # speaks MCP over stdio
 ```
 
+### Over HTTP (Streamable HTTP, stateless)
+
+Run it as a hosted endpoint for remote agents, or behind a load balancer — every request gets a fresh server, so there are no sessions to pin:
+
+```bash
+node dist/cli.js --http --port 3000                      # POST http://127.0.0.1:3000/mcp, GET /healthz
+node dist/cli.js --http --host 0.0.0.0 --allowed-origin https://app.example
+```
+
+`PORT`, `HOST` and `ALLOWED_ORIGINS` (comma-separated) are read when the flags are omitted. It binds to `127.0.0.1` by default, rejects browser requests from origins not on the allow-list (DNS-rebinding protection), and caps request bodies at 1 MB. Point any Streamable HTTP MCP client at `/mcp`.
+
 ### As a library
 
 ```ts
@@ -84,7 +95,9 @@ lookupIsraeliCity("Hadera");                 // { found: true, he: "חדרה", .
 ```mermaid
 flowchart LR
   C["MCP client<br/>(Claude Desktop, Cursor, agents)"] -- stdio --> CLI[cli.ts]
-  CLI --> S["server.ts<br/>zod schemas · isError results"]
+  R["Remote agent"] -- "Streamable HTTP /mcp" --> HTTP["http.ts<br/>stateless · origin guard"]
+  CLI --> S
+  HTTP --> S["server.ts<br/>zod schemas · isError results"]
   S --> L
   subgraph L["src/lib — pure domain core"]
     ID[id] --- PH[phone] --- VAT[vat] --- IB[iban] --- PL[plate] --- PO[postal] --- HE[hebrew] --- HO[holidays]
@@ -98,10 +111,12 @@ flowchart LR
 src/
   lib/        pure, dependency-free domain functions (id, phone, vat, iban, plate, postal, hebrew, holidays)
   server.ts   MCP wiring: zod input schemas + uniform JSON / isError results
-  cli.ts      stdio transport entry point
+  http.ts     stateless Streamable HTTP transport (/mcp, /healthz, origin guard, body cap)
+  cli.ts      entry point: stdio by default, --http for the HTTP transport
 test/
   lib.test.ts     unit tests for each domain module
   server.test.ts  end-to-end tests through a real MCP client (in-memory transport)
+  http.test.ts    end-to-end tests through a real MCP client over HTTP
 ```
 
 - **Pure core, thin adapter.** All logic lives in `src/lib` with no MCP dependency, so it is reusable as a plain TypeScript library and trivially testable.
@@ -122,7 +137,7 @@ npm run build
 - [ ] Publish to npm so `npx hebrew-il-mcp` works without the GitHub shorthand
 - [x] Israeli bank-holiday / business-day calendar tool
 - [x] Postal code and city-name normalization
-- [ ] Hosted (Streamable HTTP) transport option
+- [x] Hosted (Streamable HTTP) transport option
 
 ## Contributing
 
