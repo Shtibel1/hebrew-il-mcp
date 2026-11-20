@@ -12,7 +12,7 @@
 
 </div>
 
-<p align="center"><a href="#quick-start">Quick start</a> · <a href="#tools">Tools</a> · <a href="#architecture">Architecture</a> · <a href="#roadmap">Roadmap</a></p>
+<p align="center"><a href="#quick-start">Quick start</a> · <a href="#tools">Tools</a> · <a href="#resources">Resources</a> · <a href="#architecture">Architecture</a> · <a href="#roadmap">Roadmap</a></p>
 
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that gives AI agents reliable, deterministic tools for Israeli and Hebrew data — the things LLMs routinely get wrong when they try to do them "in their head":
@@ -38,6 +38,20 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that gives AI
 | `hebrew_text_tools` | Strips niqqud and cantillation marks and computes standard gematria. |
 
 Every tool returns both human-readable text and `structuredContent`, and invalid input produces an MCP `isError` result instead of crashing the session.
+
+## Resources
+
+Read-only reference tables an agent can load into context once instead of calling a tool in a loop. Everything is computed locally — no network.
+
+| URI | What it contains |
+| --- | --- |
+| `hebrew-il://today` | Today's date **in Israel** (Asia/Jerusalem, not UTC), its Hebrew date, whether banks are open, the next bank business day and the VAT rate in force. |
+| `hebrew-il://vat-rates` | Every standard VAT period since 2012 as `{ from, until, rate }` plus the current rate. |
+| `hebrew-il://banks` | Bank of Israel codes and names of the main retail banks. |
+| `hebrew-il://localities` | The curated city/town table with Hebrew + English names, postal prefixes and example mikud codes. |
+| `hebrew-il://holidays/{year}` | Bank full-closure holidays in a Gregorian year (1900–2100). This year and next are listed; the `year` argument supports completion. |
+
+"Today" is always the Israeli calendar day, so between midnight and 02:00/03:00 local time agents don't get yesterday's date — the same clock is now used when `calculate_israeli_vat` is called without a `date`.
 
 ## Why
 
@@ -98,7 +112,9 @@ flowchart LR
   R["Remote agent"] -- "Streamable HTTP /mcp" --> HTTP["http.ts<br/>stateless · origin guard"]
   CLI --> S
   HTTP --> S["server.ts<br/>zod schemas · isError results"]
+  S --> RS["resources.ts<br/>hebrew-il:// resources"]
   S --> L
+  RS --> L
   subgraph L["src/lib — pure domain core"]
     ID[id] --- PH[phone] --- VAT[vat] --- IB[iban] --- PL[plate] --- PO[postal] --- HE[hebrew] --- HO[holidays]
   end
@@ -109,14 +125,17 @@ flowchart LR
 
 ```
 src/
-  lib/        pure, dependency-free domain functions (id, phone, vat, iban, plate, postal, hebrew, holidays)
+  lib/        pure, dependency-free domain functions (id, phone, vat, iban, plate, postal, hebrew, holidays, time)
   server.ts   MCP wiring: zod input schemas + uniform JSON / isError results
+  resources.ts read-only MCP resources (today, VAT history, banks, localities, holidays/{year})
+  version.ts  single source of the version (handshake + /healthz)
   http.ts     stateless Streamable HTTP transport (/mcp, /healthz, origin guard, body cap)
   cli.ts      entry point: stdio by default, --http for the HTTP transport
 test/
   lib.test.ts     unit tests for each domain module
   server.test.ts  end-to-end tests through a real MCP client (in-memory transport)
   http.test.ts    end-to-end tests through a real MCP client over HTTP
+  resources.test.ts resources, completion and Israel-time "today" through a real MCP client
 ```
 
 - **Pure core, thin adapter.** All logic lives in `src/lib` with no MCP dependency, so it is reusable as a plain TypeScript library and trivially testable.
@@ -138,6 +157,7 @@ npm run build
 - [x] Israeli bank-holiday / business-day calendar tool
 - [x] Postal code and city-name normalization
 - [x] Hosted (Streamable HTTP) transport option
+- [x] MCP resources (today in Israel, VAT history, banks, localities, holidays per year)
 
 ## Contributing
 

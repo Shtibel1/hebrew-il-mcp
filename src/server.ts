@@ -8,6 +8,9 @@ import { normalizeIsraeliPlate } from "./lib/plate.js";
 import { gematria, stripNiqqud, toHebrewDate, toHebrewNumeral } from "./lib/hebrew.js";
 import { israeliBusinessDay, israeliHolidaysInYear, nextIsraeliBusinessDay } from "./lib/holidays.js";
 import { cityFromIsraeliPostalCode, lookupIsraeliCity, normalizeIsraeliPostalCode } from "./lib/postal.js";
+import { israelDate } from "./lib/time.js";
+import { registerResources } from "./resources.js";
+import { VERSION } from "./version.js";
 
 const json = (value: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
@@ -29,9 +32,15 @@ function safe<A>(fn: (args: A) => unknown) {
   };
 }
 
-export const SERVER_VERSION = "0.6.0";
+export const SERVER_VERSION = VERSION;
 
-export function createServer(): McpServer {
+export interface CreateServerOptions {
+  /** Clock used for "today" (VAT default date, hebrew-il://today). Injectable for tests. */
+  now?: () => Date;
+}
+
+export function createServer(options: CreateServerOptions = {}): McpServer {
+  const now = options.now ?? (() => new Date());
   const server = new McpServer({ name: "hebrew-il-mcp", version: SERVER_VERSION });
 
   server.registerTool(
@@ -66,18 +75,18 @@ export function createServer(): McpServer {
     {
       title: "Calculate Israeli VAT (מע\"מ)",
       description:
-        "Add VAT to a net amount or split a VAT-inclusive amount, using the Israeli VAT rate that was in force on the given date (defaults to today).",
+        "Add VAT to a net amount or split a VAT-inclusive amount, using the Israeli VAT rate that was in force on the given date (defaults to today in Israel).",
       inputSchema: {
         amount: z.number().nonnegative(),
         includesVat: z.boolean().describe("true if the amount already includes VAT"),
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Transaction date, YYYY-MM-DD"),
       },
     },
-    safe(({ amount, includesVat, date }: { amount: number; includesVat: boolean; date?: string }) => ({
-      ...calculateVat(amount, includesVat, date),
-      currency: "ILS",
-      rateDate: date ?? new Date().toISOString().slice(0, 10),
-    })),
+    safe(({ amount, includesVat, date }: { amount: number; includesVat: boolean; date?: string }) => {
+      // Default to today's date in Israel, not UTC (which lags by 2–3 hours after midnight).
+      const rateDate = date ?? israelDate(now());
+      return { ...calculateVat(amount, includesVat, rateDate), currency: "ILS", rateDate };
+    }),
   );
 
   server.registerTool(
@@ -224,6 +233,7 @@ export function createServer(): McpServer {
     safe(({ postalCode }: { postalCode: string }) => cityFromIsraeliPostalCode(postalCode)),
   );
 
+  registerResources(server, now);
 
   return server;
 }
